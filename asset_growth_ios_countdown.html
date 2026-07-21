@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>資產成長預覽 - iOS 液態玻璃質感 (含倒數)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.45);
+            --glass-border: rgba(255, 255, 255, 0.4);
+            --glass-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            --text-main: #1d1d1f;
+            --text-muted: #86868b;
+            --accent: #007aff;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%);
+            background-attachment: fixed;
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+            color: var(--text-main);
+        }
+
+        .bg-shape {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: 0;
+            animation: float 10s infinite ease-in-out alternate;
+        }
+        .shape1 { width: 500px; height: 500px; background: rgba(255, 105, 180, 0.6); top: -100px; left: -100px; }
+        .shape2 { width: 400px; height: 400px; background: rgba(0, 122, 255, 0.5); bottom: -50px; right: -50px; animation-delay: -5s; }
+        .shape3 { width: 300px; height: 300px; background: rgba(255, 215, 0, 0.5); top: 50%; left: 50%; transform: translate(-50%, -50%); animation-delay: -2s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(30px, 30px) scale(1.1); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            background: var(--glass-bg);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            backdrop-filter: blur(25px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+            border-radius: 28px;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.5px;
+        }
+
+        /* 倒數計時區塊樣式 */
+        .countdown-card {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            padding: 1.2rem;
+            border-radius: 20px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .countdown-label {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 0.8rem;
+        }
+
+        .countdown-timer {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .countdown-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.6);
+            padding: 0.6rem 1rem;
+            border-radius: 12px;
+            box-shadow: inset 0 2px 5px rgba(255,255,255,1), 0 2px 10px rgba(0,0,0,0.02);
+            min-width: 50px;
+        }
+
+        .countdown-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .countdown-unit {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.6rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        select {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            font-size: 1.05rem;
+            font-family: inherit;
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            outline: none;
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            transition: all 0.3s ease;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%231d1d1f%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat, repeat;
+            background-position: right .7em top 50%, 0 0;
+            background-size: .65em auto, 100%;
+        }
+
+        select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.2);
+        }
+
+        .result-card {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            padding: 1.5rem;
+            border-radius: 20px;
+            margin-top: 1rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+        }
+
+        .result-label {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .result-value {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin: 0;
+            letter-spacing: -1.5px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        @media (max-width: 600px) {
+            .container { padding: 1.5rem; }
+            .result-value { font-size: 2.2rem; }
+            .chart-container { height: 300px; }
+            .countdown-timer { gap: 8px; }
+            .countdown-item { padding: 0.5rem; min-width: 45px; }
+            .countdown-value { font-size: 1.4rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-shape shape1"></div>
+<div class="bg-shape shape2"></div>
+<div class="bg-shape shape3"></div>
+
+<div class="container">
+    <h1>資產成長狀態</h1>
+    
+    <!-- 倒數計時區塊 -->
+    <div class="countdown-card">
+        <div class="countdown-label">距離 123年8月1日 還有</div>
+        <div class="countdown-timer" id="countdown-timer">
+            <div class="countdown-item"><span class="countdown-value" id="cd-days">0</span><span class="countdown-unit">天</span></div>
+            <div class="countdown-item"><span class="countdown-value" id="cd-hours">00</span><span class="countdown-unit">時</span></div>
+            <div class="countdown-item"><span class="countdown-value" id="cd-minutes">00</span><span class="countdown-unit">分</span></div>
+            <div class="countdown-item"><span class="countdown-value" id="cd-seconds">00</span><span class="countdown-unit">秒</span></div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="month-select">選擇預覽月份</label>
+        <select id="month-select"></select>
+    </div>
+
+    <div class="result-card">
+        <div class="result-label" id="display-month">當下月份</div>
+        <div class="result-value" id="display-value">0</div>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="assetChart"></canvas>
+    </div>
+</div>
+
+<script>
+    // 資產數據
+    const assetData = {
+        "115年7月": 2194390, "115年8月": 2240000, "115年9月": 2292267, "115年10月": 2345753,
+        "115年11月": 2400487, "115年12月": 2456498, "116年1月": 2513817, "116年2月": 2572473,
+        "116年3月": 2632497, "116年4月": 2693922, "116年5月": 2756780, "116年6月": 2821105,
+        "116年7月": 2886931, "116年8月": 2954292, "116年9月": 3023226, "116年10月": 3093768,
+        "116年11月": 3165956, "116年12月": 3239828, "117年1月": 3315424, "117年2月": 3392784,
+        "117年3月": 3471949, "117年4月": 3552961, "117年5月": 3635863, "117年6月": 3720700,
+        "117年7月": 3807517, "117年8月": 3896359, "117年9月": 3987274, "117年10月": 4080310,
+        "117年11月": 4175517, "117年12月": 4272946, "118年1月": 4372648, "118年2月": 4474676,
+        "118年3月": 4579086, "118年4月": 4685931, "118年5月": 4795269, "118年6月": 4907159,
+        "118年7月": 5021659, "118年8月": 5138831, "118年9月": 5258737, "118年10月": 5381441,
+        "118年11月": 5507008, "118年12月": 5635505, "119年1月": 5767000, "119年2月": 5901564,
+        "119年3月": 6039267, "119年4月": 6180183, "119年5月": 6324387, "119年6月": 6471956,
+        "119年7月": 6622969, "119年8月": 6777505, "119年9月": 6935646, "119年10月": 7097478,
+        "119年11月": 7263086, "119年12月": 7432558, "120年1月": 7605984, "120年2月": 7783457,
+        "120年3月": 7965071, "120年4月": 8150923, "120年5月": 8341111, "120年6月": 8535737,
+        "120年7月": 8734904, "120年8月": 8938719, "120年9月": 9147289, "120年10月": 9360725,
+        "120年11月": 9579142, "120年12月": 9802656, "121年1月": 10031384, "121年2月": 10265450,
+        "121年3月": 10504977, "121年4月": 10750093, "121年5月": 11000929, "121年6月": 11257617,
+        "121年7月": 11520295, "121年8月": 11789102, "121年9月": 12064181, "121年10月": 12345678,
+        "121年11月": 12633744, "121年12月": 12928531, "122年1月": 13230197, "122年2月": 13538902,
+        "122年3月": 13854809, "122年4月": 14178088, "122年5月": 14508910, "122年6月": 14847452,
+        "122年7月": 15193892, "122年8月": 15548416, "122年9月": 15911213, "122年10月": 16282474,
+        "122年11月": 16662399, "122年12月": 17051188, "123年1月": 17449049, "123年2月": 17856194,
+        "123年3月": 18272838, "123年4月": 18699204, "123年5月": 19135519, "123年6月": 19582015,
+        "123年7月": 20038928, "123年8月": 20506503
+    };
+
+    const labels = Object.keys(assetData);
+    const dataPoints = Object.values(assetData);
+
+    const selectElement = document.getElementById('month-select');
+    const displayMonthElement = document.getElementById('display-month');
+    const displayValueElement = document.getElementById('display-value');
+
+    let assetChart;
+
+    // --- 倒數計時功能 ---
+    function initCountdown() {
+        // 民國 123年 即西元 2034年
+        const targetDate = new Date('2034-08-01T00:00:00').getTime();
+
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const distance = targetDate - now;
+
+            if (distance < 0) {
+                document.getElementById('countdown-timer').innerHTML = "<div class='countdown-value'>已達成</div>";
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            document.getElementById('cd-days').textContent = days;
+            document.getElementById('cd-hours').textContent = String(hours).padStart(2, '0');
+            document.getElementById('cd-minutes').textContent = String(minutes).padStart(2, '0');
+            document.getElementById('cd-seconds').textContent = String(seconds).padStart(2, '0');
+        }
+
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
+    }
+    // --- 倒數計時功能結束 ---
+
+
+    function formatNumber(num) {
+        return num.toLocaleString('zh-TW');
+    }
+
+    function getSystemMonthString() {
+        const now = new Date();
+        const rocYear = now.getFullYear() - 1911;
+        const month = now.getMonth() + 1;
+        return `${rocYear}年${month}月`;
+    }
+
+    function initSelect() {
+        labels.forEach(month => {
+            const option = document.createElement('option');
+            option.value = month;
+            option.textContent = month;
+            selectElement.appendChild(option);
+        });
+    }
+
+    function updateCardDisplay(monthStr) {
+        const value = assetData[monthStr];
+        if (monthStr === getSystemMonthString()) {
+            displayMonthElement.textContent = `${monthStr} (當下)`;
+        } else {
+            displayMonthElement.textContent = monthStr;
+        }
+        displayValueElement.textContent = `$${formatNumber(value)}`;
+        selectElement.value = monthStr;
+    }
+
+    function initChart(currentMonthStr) {
+        const ctx = document.getElementById('assetChart').getContext('2d');
+        const targetMonth = labels.includes(currentMonthStr) ? currentMonthStr : labels[0];
+
+        const gradientFill = ctx.createLinearGradient(0, 0, 0, 400);
+        gradientFill.addColorStop(0, 'rgba(0, 122, 255, 0.3)');
+        gradientFill.addColorStop(1, 'rgba(0, 122, 255, 0.0)');
+
+        const pointBackgroundColors = labels.map(label => label === targetMonth ? '#ff3b30' : '#007aff');
+        const pointBorderColors = labels.map(label => label === targetMonth ? '#ffffff' : '#ffffff');
+        const pointRadii = labels.map(label => label === targetMonth ? 7 : 0);
+        const pointHoverRadii = labels.map(label => label === targetMonth ? 9 : 6);
+
+        Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+        Chart.defaults.color = '#86868b';
+
+        assetChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '資產總額',
+                    data: dataPoints,
+                    borderColor: '#007aff',
+                    backgroundColor: gradientFill,
+                    borderWidth: 3,
+                    pointBackgroundColor: pointBackgroundColors,
+                    pointBorderColor: pointBorderColors,
+                    pointBorderWidth: 2,
+                    pointRadius: pointRadii,
+                    pointHoverRadius: pointHoverRadii,
+                    fill: true,
+                    tension: 0.4 
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false, 
+                },
+                plugins: {
+                    tooltip: {
+                        backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                        titleColor: '#1d1d1f',
+                        bodyColor: '#1d1d1f',
+                        borderColor: 'rgba(255, 255, 255, 1)',
+                        borderWidth: 1,
+                        padding: 12,
+                        boxPadding: 6,
+                        cornerRadius: 12,
+                        titleFont: { size: 14, weight: '600' },
+                        bodyFont: { size: 14 },
+                        callbacks: {
+                            label: function(context) {
+                                return ' $ ' + context.parsed.y.toLocaleString('zh-TW');
+                            }
+                        }
+                    },
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { maxTicksLimit: 8, color: '#86868b' }
+                    },
+                    y: {
+                        grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false },
+                        ticks: {
+                            color: '#86868b',
+                            callback: function(value) {
+                                return (value / 10000).toLocaleString('zh-TW') + ' 萬';
+                            }
+                        }
+                    }
+                },
+                onHover: (event, activeElements) => {
+                    if (activeElements.length > 0) {
+                        const index = activeElements[0].index;
+                        updateCardDisplay(labels[index]);
+                    }
+                }
+            }
+        });
+
+        updateCardDisplay(targetMonth);
+    }
+
+    selectElement.addEventListener('change', function() {
+        const selectedMonth = this.value;
+        updateCardDisplay(selectedMonth);
+        
+        const index = labels.indexOf(selectedMonth);
+        if (assetChart && index !== -1) {
+            assetChart.setActiveElements([{ datasetIndex: 0, index: index }]);
+            assetChart.tooltip.setActiveElements([{ datasetIndex: 0, index: index }]);
+            assetChart.update();
+        }
+    });
+
+    const systemCurrentMonth = getSystemMonthString();
+    initSelect();
+    initCountdown(); // 啟動倒數計時
+    initChart(systemCurrentMonth);
+
+</script>
+</body>
+</html>
